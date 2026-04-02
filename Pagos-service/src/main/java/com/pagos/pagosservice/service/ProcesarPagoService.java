@@ -8,6 +8,8 @@ import com.pagos.pagosservice.repository.PagoRepository;
 import com.pagos.pagosservice.response.GeneralResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -21,23 +23,17 @@ public class ProcesarPagoService {
 
     private final PagoRepository pagoRepository;
     private final OrderClient orderClient;
+    private final PaymentProducer paymentProducer;
+
+    @Autowired
+    private MongoTemplate mongoTemplate; // 👈 AQUÍ
 
     public Pago execute(ProcesarPagoDto data) {
-        log.info("Iniciando procesamiento de pago para la Orden: {}. Monto: ${}", data.getOrdenId(), data.getAmount());
 
-        try {
-            ResponseEntity<GeneralResponse<Order>> response = orderClient.getOrderById(data.getOrdenId());
+        log.info("Iniciando procesamiento de pago para la Orden: {}", data.getOrdenId());
 
-            if (response.getBody() == null) {
-                throw new NoSuchElementException("La orden con ID " + data.getOrdenId() + " no existe.");
-            }
-        } catch (feign.FeignException.NotFound e) {
-            log.warn("Feign detectó que la orden {} no existe.", data.getOrdenId());
-            throw new NoSuchElementException("La orden con ID " + data.getOrdenId() + " no existe.");
-        } catch (Exception e) {
-            log.error("Error de comunicación con Órdenes: {}", e.getMessage());
-            throw new RuntimeException("Fallo en la comunicación entre microservicios: " + e.getMessage());
-        }
+        // 🔹 Validación de orden (igual que ya tienes)
+        validarOrden(data);
 
         Pago pago = Pago.builder()
                 .ordenId(data.getOrdenId())
@@ -47,13 +43,51 @@ public class ProcesarPagoService {
                 .transactionDate(java.time.LocalDateTime.now().toString())
                 .build();
 
+        log.info("🔥 HARDCODE: enviando directo a Kafka");
+        paymentProducer.sendToRetry(data);
+        return null;
+
+        /*
         try {
             Pago savedPago = pagoRepository.save(pago);
-            log.info("Pago procesado y guardado exitosamente. ID de Transacción: {}", savedPago.getId());
+
+            log.info("Pago guardado correctamente: {}", savedPago.getId());
+
             return savedPago;
+
         } catch (Exception e) {
-            log.error("Error al guardar el pago en MongoDB para la orden {}: {}", data.getOrdenId(), e.getMessage());
-            throw e;
+
+            log.error("Error al guardar pago → Kafka");
+
+            paymentProducer.sendToRetry(data);
+
+            throw new RuntimeException("Pago enviado a retry");
+        }
+        */
+
+    }
+
+    // 👇 AQUÍ VA TU MÉTODO
+    private boolean mongoDisponible() {
+        try {
+            mongoTemplate.executeCommand("{ ping: 1 }");
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void validarOrden(ProcesarPagoDto data) {
+        try {
+            ResponseEntity<GeneralResponse<Order>> response =
+                    orderClient.getOrderById(data.getOrdenId());
+
+            if (response.getBody() == null) {
+                throw new NoSuchElementException("La orden no existe.");
+            }
+
+        } catch (feign.FeignException.NotFound e) {
+            throw new NoSuchElementException("La orden no existe.");
         }
     }
 }
