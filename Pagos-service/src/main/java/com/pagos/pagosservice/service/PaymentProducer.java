@@ -16,6 +16,7 @@ public class PaymentProducer {
     private static final String TOPIC = "payments_retry_jobs";
 
     public void sendToRetry(ProcesarPagoDto dto) {
+        dto.setFromRetry(true);
         try {
             String message = objectMapper.writeValueAsString(dto);
             kafkaTemplate.send(TOPIC, message);

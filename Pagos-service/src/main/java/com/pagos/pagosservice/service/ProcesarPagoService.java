@@ -54,7 +54,9 @@ public class ProcesarPagoService {
 
             log.error("Error al guardar pago → Kafka");
 
-            paymentProducer.sendToRetry(data);
+            if (!data.isFromRetry()) {
+                paymentProducer.sendToRetry(data);
+            }
 
             throw new RuntimeException("Pago enviado a retry");
         }

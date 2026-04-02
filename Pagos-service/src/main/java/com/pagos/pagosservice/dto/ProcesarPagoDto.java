@@ -13,4 +13,5 @@ public class ProcesarPagoDto {
     private String ordenId;
     private Double amount;
     private String paymentMethod;
+    private boolean fromRetry;
 }
