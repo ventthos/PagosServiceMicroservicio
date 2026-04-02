@@ -33,7 +33,7 @@ public class ProcesarPagoService {
         log.info("Iniciando procesamiento de pago para la Orden: {}", data.getOrdenId());
 
         // 🔹 Validación de orden (igual que ya tienes)
-        validarOrden(data);
+        //validarOrden(data);
 
         Pago pago = Pago.builder()
                 .ordenId(data.getOrdenId())
@@ -43,11 +43,6 @@ public class ProcesarPagoService {
                 .transactionDate(java.time.LocalDateTime.now().toString())
                 .build();
 
-        log.info("🔥 HARDCODE: enviando directo a Kafka");
-        paymentProducer.sendToRetry(data);
-        return null;
-
-        /*
         try {
             Pago savedPago = pagoRepository.save(pago);
 
@@ -63,7 +58,6 @@ public class ProcesarPagoService {
 
             throw new RuntimeException("Pago enviado a retry");
         }
-        */
 
     }
 
