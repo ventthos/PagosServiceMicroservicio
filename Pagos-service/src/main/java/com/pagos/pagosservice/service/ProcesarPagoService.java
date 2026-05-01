@@ -26,7 +26,7 @@ public class ProcesarPagoService {
     private final PaymentProducer paymentProducer;
 
     @Autowired
-    private MongoTemplate mongoTemplate; // 👈 AQUÍ
+    private MongoTemplate mongoTemplate;
 
     public Pago execute(ProcesarPagoDto data) {
 
