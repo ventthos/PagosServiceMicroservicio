@@ -1,6 +1,7 @@
 package com.pagos.pagosservice.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pagos.pagosservice.dto.OrderPaymentKafkaDto;
 import com.pagos.pagosservice.dto.ProcesarPagoDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -14,6 +15,7 @@ public class PaymentProducer {
     private final ObjectMapper objectMapper;
 
     private static final String TOPIC = "payments_retry_jobs";
+    private static final String TOPIC_DEBT = "payment_received_events";
 
     public void sendToRetry(ProcesarPagoDto dto) {
         dto.setFromRetry(true);
@@ -22,6 +24,21 @@ public class PaymentProducer {
             kafkaTemplate.send(TOPIC, message);
         } catch (Exception e) {
             throw new RuntimeException("Error enviando a Kafka", e);
+        }
+    }
+
+    public void sendToUpdateDebt(String orderId, String pagoId, Double amount){
+        try {
+            OrderPaymentKafkaDto object = OrderPaymentKafkaDto.builder()
+                    .ordenId(orderId)
+                    .pagoId(pagoId)
+                    .amount(amount)
+                    .build();
+            String message = objectMapper.writeValueAsString(object);
+            kafkaTemplate.send(TOPIC_DEBT, message);
+        }
+        catch (Exception e){
+            throw new RuntimeException("Error enviando a Kafka el pago", e);
         }
     }
 }

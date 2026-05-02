@@ -32,9 +32,6 @@ public class ProcesarPagoService {
 
         log.info("Iniciando procesamiento de pago para la Orden: {}", data.getOrdenId());
 
-        // 🔹 Validación de orden (igual que ya tienes)
-        //validarOrden(data);
-
         Pago pago = Pago.builder()
                 .ordenId(data.getOrdenId())
                 .amount(data.getAmount())
@@ -47,6 +44,8 @@ public class ProcesarPagoService {
             Pago savedPago = pagoRepository.save(pago);
 
             log.info("Pago guardado correctamente: {}", savedPago.getId());
+
+            paymentProducer.sendToUpdateDebt(savedPago.getOrdenId(), savedPago.getId(), savedPago.getAmount());
 
             return savedPago;
 
@@ -63,7 +62,6 @@ public class ProcesarPagoService {
 
     }
 
-    // 👇 AQUÍ VA TU MÉTODO
     private boolean mongoDisponible() {
         try {
             mongoTemplate.executeCommand("{ ping: 1 }");
