@@ -2,6 +2,7 @@ package com.pagos.pagosservice.service;
 
 import com.pagos.pagosservice.clients.OrderClient;
 import com.pagos.pagosservice.dto.ProcesarPagoDto;
+import com.pagos.pagosservice.exceptionhandler.RetryScheduledException;
 import com.pagos.pagosservice.models.Order;
 import com.pagos.pagosservice.models.Pago;
 import com.pagos.pagosservice.repository.PagoRepository;
@@ -55,6 +56,9 @@ public class ProcesarPagoService {
 
             if (!data.isFromRetry()) {
                 paymentProducer.sendToRetry(data);
+                throw new RetryScheduledException(
+                        "Hubo un error. Se reintentará crear el pago lo más pronto posible"
+                );
             }
 
             throw new RuntimeException("Pago enviado a retry");
