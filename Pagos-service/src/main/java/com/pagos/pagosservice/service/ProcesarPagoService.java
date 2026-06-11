@@ -33,6 +33,10 @@ public class ProcesarPagoService {
 
         log.info("Iniciando procesamiento de pago para la Orden: {}", data.getOrdenId());
 
+        if (data.getAmount() == null || data.getAmount() <= 0) {
+            throw new IllegalArgumentException("El monto del pago debe ser mayor a 0.");
+        }
+
         Pago pago = Pago.builder()
                 .ordenId(data.getOrdenId())
                 .amount(data.getAmount())
